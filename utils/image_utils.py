@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 FONT_LARGE = None
 FONT_MEDIUM = None  
 FONT_TEMP = None
-MAIN_IMG = None
+LIGHT_IMG = None
 DARK_IMG = None
 GLOBE_IMG = None
 LIGHT_EMOJI_CACHE = {}
@@ -20,14 +20,15 @@ DARK_EMOJI_CACHE = {}
 
 def load_resources():
     """Предзагрузка ресурсов"""
-    global FONT_LARGE, FONT_MEDIUM, FONT_TEMP, MAIN_IMG, DARK_IMG, GLOBE_IMG, LIGHT_EMOJI_CACHE, DARK_EMOJI_CACHE
+    global FONT_LARGE, FONT_MEDIUM, FONT_TEMP, LIGHT_IMG, DARK_IMG, GLOBE_IMG, LIGHT_EMOJI_CACHE, DARK_EMOJI_CACHE
     
     try:
         FONT_LARGE = ImageFont.truetype("SF-Pro-Display-Medium.otf", 72)
         FONT_MEDIUM = ImageFont.truetype("SF-Pro-Display-Medium.otf", 46.75)
         FONT_TEMP = ImageFont.truetype("SF-Pro-Display-Medium.otf", 186.99)
         
-        MAIN_IMG = Image.open("templates/main_temp.png").convert("RGBA")
+        # Загружаем оба фона: светлый для дня, темный для ночи
+        LIGHT_IMG = Image.open("templates/light_temp.png").convert("RGBA")
         DARK_IMG = Image.open("templates/dark_temp.png").convert("RGBA")
         GLOBE_IMG = Image.open("templates/globe.png").convert("RGBA")
 
@@ -155,7 +156,7 @@ async def create_weather_card_async(weather_data, output_path):
     start_time = time.time()
     
     try:
-        if any(resource is None for resource in [FONT_LARGE, FONT_MEDIUM, FONT_TEMP, MAIN_IMG, DARK_IMG, GLOBE_IMG]):
+        if any(resource is None for resource in [FONT_LARGE, FONT_MEDIUM, FONT_TEMP, LIGHT_IMG, DARK_IMG, GLOBE_IMG]):
             logger.error("Ресурсы не загружены!")
             return False
 
@@ -184,7 +185,7 @@ def create_weather_card_sync(weather_data, output_path):
         logger.info(f"Создание карточки для {weather_data['city']}, местное время: {current_time_local}, ночной режим: {is_night}")
         
         # Выбираем фон в зависимости от времени суток в городе
-        background_img = DARK_IMG if is_night else MAIN_IMG
+        background_img = DARK_IMG if is_night else LIGHT_IMG
         
         main_img = Image.new("RGB", background_img.size, "white")
         main_img.paste(background_img, (0, 0))
