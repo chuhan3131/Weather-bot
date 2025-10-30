@@ -2,6 +2,7 @@ import time
 import asyncio
 import aiohttp
 import base64
+import hashlib
 from aiogram import types
 from aiogram.enums import ParseMode
 from utils.weather import get_current_weather_async, get_location_async, generate_random_ip
@@ -11,6 +12,11 @@ from config import IMGBB_API_KEY
 import logging
 
 logger = logging.getLogger(__name__)
+
+def generate_result_id(city, timestamp):
+    """Генерация ID для инлайна"""
+    base_string = f"{city}_{timestamp}"
+    return hashlib.md5(base_string.encode()).hexdigest()[:64]
 
 async def upload_to_imgbb(image_path):
     """Асинхронная загрузка на imgbb"""
@@ -55,8 +61,9 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
                 city, country_code = await get_location_async(random_ip)
             
             if not city:
+                result_id = generate_result_id("random_error", int(time.time()))
                 results = [types.InlineQueryResultArticle(
-                    id=f"random_error_{int(time.time())}",
+                    id=result_id,
                     title="Случайная погода", 
                     description="Не удалось найти случайную локацию, попробуйте еще раз",
                     input_message_content=types.InputTextMessageContent(
@@ -80,8 +87,9 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
                 city, country_code = await get_location_async(location)
             
             if not city:
+                result_id = generate_result_id("ip_error", int(time.time()))
                 results = [types.InlineQueryResultArticle(
-                    id=f"error_{int(time.time())}", 
+                    id=result_id, 
                     title="Ошибка определения местоположения", 
                     description=f"IP {location} не найден",
                     input_message_content=types.InputTextMessageContent(
@@ -114,7 +122,6 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
         if not card_created:
             return
 
-        # Параллельная загрузка на imgbb и сайт
         imgbb_task = asyncio.create_task(upload_to_imgbb(local_filepath))
         upload_to_website(local_filepath, website_filename)
 
@@ -123,8 +130,7 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
         if not image_url:
             image_url = f"https://chuhan.lol/{website_filename}"
         
-        # Создаем результат
-        result_id = f"weather_{weather_data['city']}_{timestamp}"
+        result_id = generate_result_id(weather_data['city'], timestamp)
         
         if query.query.strip().lower() == 'random':
             title = f"Случайная погода в {weather_data['city']}"
@@ -143,8 +149,7 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
                 caption=f"<code>{weather_data['city']} - {weather_data['temp']:+.1f}°C, {weather_data['description']}</code>\n\n<b>Посмотреть погоду:</b> <code>@{bot_username} локация</code>",
                 parse_mode=ParseMode.HTML,
                 photo_width=1600,
-                photo_height=1000,
-                photo_mime_type="image/png" 
+                photo_height=1000
             )
         ]
         
@@ -160,8 +165,9 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
             
     except Exception as e:
         logger.error(f"Ошибка: {e}")
+        result_id = generate_result_id("fallback", int(time.time()))
         results = [types.InlineQueryResultArticle(
-            id=f"fallback_{int(time.time())}",
+            id=result_id,
             title="Погода", 
             description=location,
             input_message_content=types.InputTextMessageContent(
