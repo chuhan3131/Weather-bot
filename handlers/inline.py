@@ -5,9 +5,9 @@ import base64
 import hashlib
 from aiogram import types
 from aiogram.enums import ParseMode
-from utils.weather import get_current_weather_async, get_location_async, generate_random_ip
+from utils.weather import get_current_weather_async, get_location_async
 from utils.image_utils import create_weather_card_async
-from utils.file_utils import generate_random_filename, cleanup_files, upload_to_website
+from utils.file_utils import generate_random_filename, cleanup_files, upload_to_website, generate_random_ip
 from config import IMGBB_API_KEY
 import logging
 
