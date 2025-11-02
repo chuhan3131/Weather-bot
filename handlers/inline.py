@@ -44,8 +44,27 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
     """Асинхронный обработчик инлайн запросов погоды"""
     start_time = time.time()
     location = query.query.strip().lower()
-    
+
     if not location:
+        result_id = generate_result_id("help", int(time.time()))
+        results = [types.InlineQueryResultArticle(
+            id=result_id,
+            title="Как использовать бота?", 
+            description=f"Введите {bot_username} локация",
+            input_message_content=types.InputTextMessageContent(
+                message_text=f"🌤️ <b>Погодник</b>\n\n"
+                           "Чтобы узнать погоду, введите:\n"
+                           "<code>{bot_username} локация</code>\n"
+                           "<code>{bot_username} IP</code>\n"
+                           "<code>{bot_username} random</code>\n\n"
+                           "Пример: <code>{bot_username} Москва</code>",
+                parse_mode=ParseMode.HTML
+            ),
+            thumb_url="https://chuhan.lol/icon.jpg",
+            thumb_width=64,
+            thumb_height=64
+        )]
+        await query.answer(results, cache_time=3600)  
         return
     
     try:
