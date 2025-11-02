@@ -50,14 +50,14 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
         results = [types.InlineQueryResultArticle(
             id=result_id,
             title="Как использовать бота?", 
-            description=f"Введите {bot_username} локация",
+            description=f"Введите @{bot_username} локация",
             input_message_content=types.InputTextMessageContent(
                 message_text=f"🌤️ <b>Погодник</b>\n\n"
                            "Чтобы узнать погоду, введите:\n"
-                           "<code>{bot_username} локация</code>\n"
-                           "<code>{bot_username} IP</code>\n"
-                           "<code>{bot_username} random</code>\n\n"
-                           "Пример: <code>{bot_username} Москва</code>",
+                           "<code>@{bot_username} локация</code>\n"
+                           "<code>@{bot_username} IP</code>\n"
+                           "<code>@{bot_username} random</code>\n\n"
+                           "Пример: <code>@{bot_username} Москва</code>",
                 parse_mode=ParseMode.HTML
             ),
             thumb_url="https://chuhan.lol/icon.jpg",
