@@ -54,10 +54,10 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
             input_message_content=types.InputTextMessageContent(
                 message_text=f"🌤️ <b>Погодник</b>\n\n"
                            "Чтобы узнать погоду, введите:\n"
-                           "<code>@{bot_username} локация</code>\n"
-                           "<code>@{bot_username} IP</code>\n"
-                           "<code>@{bot_username} random</code>\n\n"
-                           "Пример: <code>@{bot_username} Москва</code>",
+                          f"<code>@{bot_username} локация</code>\n"
+                          f"<code>@{bot_username} IP</code>\n"
+                          f"<code>@{bot_username} random</code>\n\n"
+                          f"Пример: <code>@{bot_username} Москва</code>",
                 parse_mode=ParseMode.HTML
             ),
             thumb_url="https://chuhan.lol/icon.jpg",
@@ -165,7 +165,7 @@ async def inline_weather_query(query: types.InlineQuery, bot_username):
                 thumbnail_url=image_url,
                 title=title,
                 description=description,
-                caption=f"<code>{weather_data['city']} - {weather_data['temp']:+.1f}°C, {weather_data['description']}</code>\n\n<b>Посмотреть погоду:</b> <code>@{bot_username} локация</code>",
+                caption=f"<code>{weather_data['city']} - {weather_data['temp']:+.1f}°C, {weather_data['description']}</code>",
                 parse_mode=ParseMode.HTML,
                 photo_width=1600,
                 photo_height=1000
