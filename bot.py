@@ -46,6 +46,8 @@ async def process_start_command(message: types.Message):
 @dp.inline_query()
 async def inline_query_handler(query: types.InlineQuery):
     username_bot = await bot.get_me()
+    if username_bot.username is None:
+        raise RuntimeError("Почему у бота нет юзернема?")  # juts for IDE :(
     await inline_weather_query(query, username_bot.username)
 
 

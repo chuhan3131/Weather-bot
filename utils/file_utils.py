@@ -4,6 +4,7 @@ import random
 import string
 import shutil
 import logging
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ def generate_random_filename(prefix="weather", extension="png"):
     return f"{prefix}_{random_string}.{extension}"
 
 
-def cleanup_files(*file_paths):
+def cleanup_files(*file_paths: str):
     """Удаление файлов после использования"""
     for file_path in file_paths:
         max_attempts = 3
@@ -69,10 +70,11 @@ def cleanup_files(*file_paths):
                     )
 
 
-def upload_to_website(local_path, filename):
+def upload_to_website(local_io: BytesIO, filename: str):
     """Копирование файла"""
     try:
-        shutil.copy2(local_path, filename)
+        with open(filename, "wb") as file:
+            shutil.copyfileobj(local_io, file)
         return True
     except Exception as e:
         logger.error(f"Ошибка копирования файла: {e}")

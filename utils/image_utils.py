@@ -1,7 +1,9 @@
 import time
 import logging
 import asyncio
+from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +246,9 @@ def calculate_dynamic_position(temp_text, font_temp=None, base_x=800):
     return max(dynamic_x, min_x)
 
 
-async def create_weather_card_async(weather_data, output_path):
+async def create_weather_card_async(
+    weather_data,
+) -> tuple[bool, BytesIO | None]:
     """Асинхронное создание карточки"""
     start_time = time.time()
 
@@ -261,23 +265,25 @@ async def create_weather_card_async(weather_data, output_path):
             ]
         ):
             logger.error("Ресурсы не загружены!")
-            return False
+            return False, None
 
         # Выполняем в отдельном потоке, так как Pillow блокирующий
         loop = asyncio.get_event_loop()
-        success = await loop.run_in_executor(
-            None, create_weather_card_sync, weather_data, output_path
+        success, card = await loop.run_in_executor(
+            None, create_weather_card_sync, weather_data
         )
 
         logger.info(f"Карточка создана за {time.time() - start_time:.2f}с")
-        return success
+        return success, card
 
     except Exception as e:
         logger.error(f"Ошибка создания карточки: {e}")
-        return False
+        return False, None
 
 
-def create_weather_card_sync(weather_data, output_path):
+def create_weather_card_sync(
+    weather_data: dict[str, Any],
+) -> tuple[bool, BytesIO | None]:
     """Синхронное создание карточки (для executor)"""
     try:
         current_time_local = weather_data["current_time_local"]
@@ -413,12 +419,13 @@ def create_weather_card_sync(weather_data, output_path):
             fill=sunrise_color,
         )
 
-        main_img.save(output_path, "PNG", optimize=True, quality=85)
-        return True
+        out = BytesIO()
+        main_img.save(out, "PNG", optimize=True, quality=85)
+        return True, out
 
     except Exception as e:
         logger.error(f"Ошибка создания карточки: {e}")
-        return False
+        return False, None
 
 
 # Алиас для обратной совместимости
