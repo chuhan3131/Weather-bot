@@ -8,12 +8,12 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Глобальные переменные для кэша ресурсов
-FONT_LARGE = ImageFont.truetype()
-FONT_MEDIUM = ImageFont.truetype()
-FONT_TEMP = ImageFont.truetype()
-LIGHT_IMG = Image.Image()
-DARK_IMG = Image.Image()
-GLOBE_IMG = Image.Image()
+FONT_LARGE: Any = None
+FONT_MEDIUM: Any = None
+FONT_TEMP: Any = None
+LIGHT_IMG: Any = None
+DARK_IMG: Any = None
+GLOBE_IMG: Any = None
 LIGHT_EMOJI_CACHE = {}
 DARK_EMOJI_CACHE = {}
 
@@ -277,7 +277,7 @@ async def create_weather_card_async(
         return success, card
 
     except Exception as e:
-        logger.error(f"Ошибка создания карточки: {e}")
+        logger.error(f"Ошибка создания карточки: {e}", exc_info=True)
         return False, None
 
 
@@ -424,7 +424,7 @@ def create_weather_card_sync(
         return True, out
 
     except Exception as e:
-        logger.error(f"Ошибка создания карточки: {e}")
+        logger.error(f"Ошибка создания карточки: {e}", exc_info=True)
         return False, None
 
 

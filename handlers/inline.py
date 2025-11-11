@@ -29,20 +29,20 @@ async def upload_to_imgbb(image_io: BytesIO):  # well... why not :shrug:
     """Асинхронная загрузка на imgbb"""
     try:
         async with httpx.AsyncClient() as client:
-                url = "https://api.imgbb.com/1/upload"
-response = await client.post(
+            url = "https://api.imgbb.com/1/upload"
+            response = await client.post(
                 url, data=dict(key=IMGBB_API_KEY), files=dict(image=image_io)
             )
             if response.status_code == 200:
-                        result = response.json()
-                        return result["data"]["url"]
-                    else:
-                        logger.error(
-f"Ошибка от imgbb: {response.status_code, response.content}"
-)
-                        return None
+                result = response.json()
+                return result["data"]["url"]
+            else:
+                logger.error(
+                    f"Ошибка от imgbb: {response.status_code, response.content}"
+                )
+                return None
     except Exception as e:
-        logger.error(f"Ошибка загрузки на imgbb: {e}")
+        logger.error(f"Ошибка загрузки на imgbb: {e}", exc_info=True)
         return None
 
 
@@ -223,7 +223,7 @@ async def inline_weather_query(query: types.InlineQuery, bot_username: str):
         cleanup_files(website_filename)
 
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка: {e}", exc_info=True)
         result_id = generate_result_id("fallback", int(time.time()))
         results = [
             types.InlineQueryResultArticle(

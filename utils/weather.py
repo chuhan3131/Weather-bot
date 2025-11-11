@@ -1,7 +1,12 @@
 import aiohttp
 import logging
+import httpx
 from datetime import datetime, timezone, timedelta
-from config import OPENWEATHERMAP_API_KEY, REQUEST_TIMEOUT
+from config import (
+    OPENWEATHERMAP_BASE_URL,
+    OPENWEATHERMAP_API_KEY,
+    REQUEST_TIMEOUT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +31,9 @@ async def get_location_async(ip):
                     return data["city"], data["countryCode"]
                 return None, None
     except Exception as e:
-        logger.error(f"Ошибка получения локации для IP {ip}: {e}")
+        logger.error(
+            f"Ошибка получения локации для IP {ip}: {e}", exc_info=True
+        )
         return None, None
 
 
@@ -88,33 +95,61 @@ async def get_current_weather_async(city, country_code=None):
 
     try:
         query = f"{city},{country_code}" if country_code else city
-        url = "http://api.openweathermap.org/data/2.5/weather"
+        url = "/data/2.5/weather"
 
-        timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with httpx.AsyncClient(
+            timeout=REQUEST_TIMEOUT,
+            verify=False,
+            base_url=OPENWEATHERMAP_BASE_URL,
+        ) as client:
             params = {
                 "q": query,
                 "units": "metric",
                 "APPID": OPENWEATHERMAP_API_KEY,
                 "lang": "ru",
             }
-            async with session.get(url, params=params) as response:
-                data = await response.json()
-                weather_data = process_weather_data(data)
+            response = await client.get(url, params=params)
+            logger.info(f"{response.content=}")
+            data = response.json()
+            weather_data = process_weather_data(data)
 
-                # Сохранение в кэш
-                if weather_data:
-                    weather_cache[cache_key] = (
-                        weather_data,
-                        datetime.now().timestamp(),
-                    )
-                    # Очистка старого кэша
-                    if len(weather_cache) > 100:
-                        oldest_key = next(iter(weather_cache))
-                        weather_cache.pop(oldest_key)
+            # Сохранение в кэш
+            if weather_data:
+                weather_cache[cache_key] = (
+                    weather_data,
+                    datetime.now().timestamp(),
+                )
+                # Очистка старого кэша
+                if len(weather_cache) > 100:
+                    oldest_key = next(iter(weather_cache))
+                    weather_cache.pop(oldest_key)
 
-                return weather_data
+            return weather_data
+        # timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+        # async with aiohttp.ClientSession(timeout=timeout) as session:
+        #     params = {
+        #         "q": query,
+        #         "units": "metric",
+        #         "APPID": OPENWEATHERMAP_API_KEY,
+        #         "lang": "ru",
+        #     }
+        #     async with session.get(url, params=params) as response:
+        #         data = await response.json()
+        #         weather_data = process_weather_data(data)
+
+        #         # Сохранение в кэш
+        #         if weather_data:
+        #             weather_cache[cache_key] = (
+        #                 weather_data,
+        #                 datetime.now().timestamp(),
+        #             )
+        #             # Очистка старого кэша
+        #             if len(weather_cache) > 100:
+        #                 oldest_key = next(iter(weather_cache))
+        #                 weather_cache.pop(oldest_key)
+
+        #         return weather_data
 
     except Exception as e:
-        logger.error(f"Ошибка получения погоды для {city}: {e}")
+        logger.error(f"Ошибка получения погоды для {city}: {e}", exc_info=True)
         return None

@@ -32,7 +32,6 @@ async def process_start_command(message: types.Message):
         logger.error(
             "Не удалось получить отправителя!",
             extra=dict(chat_id=message.chat.id, message_id=message.chat.id),
-            exc_info=True,
         )
         return
     username_bot = await bot.get_me()
@@ -59,4 +58,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

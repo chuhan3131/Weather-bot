@@ -66,7 +66,7 @@ def cleanup_files(*file_paths: str):
                     time.sleep(0.1)
                 else:
                     logger.error(
-                        f"Не удалось удалить {file_path} после {max_attempts} попыток"
+                        f"Не удалось удалить {file_path} после {max_attempts} попыток", exc_info=True
                     )
 
 
@@ -77,5 +77,5 @@ def upload_to_website(local_io: BytesIO, filename: str):
             shutil.copyfileobj(local_io, file)
         return True
     except Exception as e:
-        logger.error(f"Ошибка копирования файла: {e}")
+        logger.error(f"Ошибка копирования файла: {e}", exc_info=True)
         return False
