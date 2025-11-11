@@ -1,7 +1,6 @@
 import time
 import asyncio
-import aiohttp
-import base64
+import httpx
 import hashlib
 from aiogram import types
 from aiogram.enums import ParseMode
@@ -29,20 +28,18 @@ def generate_result_id(city: str, timestamp: float):
 async def upload_to_imgbb(image_io: BytesIO):  # well... why not :shrug:
     """Асинхронная загрузка на imgbb"""
     try:
-        async with aiohttp.ClientSession() as session:
-            with image_io as file:
+        async with httpx.AsyncClient() as client:
                 url = "https://api.imgbb.com/1/upload"
-
-                data = aiohttp.FormData()
-                data.add_field("key", IMGBB_API_KEY)
-                data.add_field("image", base64.b64encode(file.read()).decode())
-
-                async with session.post(url, data=data, timeout=30) as response:
-                    if response.status == 200:
-                        result = await response.json()
+response = await client.post(
+                url, data=dict(key=IMGBB_API_KEY), files=dict(image=image_io)
+            )
+            if response.status_code == 200:
+                        result = response.json()
                         return result["data"]["url"]
                     else:
-                        logger.error(f"Ошибка от imgbb: {response.status}")
+                        logger.error(
+f"Ошибка от imgbb: {response.status_code, response.content}"
+)
                         return None
     except Exception as e:
         logger.error(f"Ошибка загрузки на imgbb: {e}")
