@@ -1,28 +1,52 @@
 import os
 import time
+import httpx
 import random
 import string
-import shutil
-import logging
-import ipaddress
+import structlog
+from io import BytesIO
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
+file_tokens: dict[str, str] = dict()
+
 
 def generate_random_ip():
     """Генерация случайного публичного IP адреса"""
-    first_octet = random.choice([1, 14, 23, 27, 36, 37, 39, 42, 49, 50, 58, 59, 60, 61, 101, 102, 103, 104, 105, 106, 107, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223])
+
+    first_octet = random.choice(
+        [
+            1,
+            14,
+            23,
+            27,
+            36,
+            37,
+            39,
+            42,
+            49,
+            50,
+            *range(58, 61),
+            *range(101, 107),
+            *range(110, 126),
+            *range(133, 223),
+        ]
+    )
     second_octet = random.randint(0, 255)
     third_octet = random.randint(0, 255)
     fourth_octet = random.randint(1, 254)
-    
+
     return f"{first_octet}.{second_octet}.{third_octet}.{fourth_octet}"
+
 
 def generate_random_filename(prefix="weather", extension="png"):
     """Генерация случайного имени карточки погоды"""
-    random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
+    random_string = "".join(
+        random.choices(string.ascii_lowercase + string.digits, k=16)
+    )
     return f"{prefix}_{random_string}.{extension}"
 
-def cleanup_files(*file_paths):
+
+async def cleanup_files(*file_paths: str):
     """Удаление файлов после использования"""
     for file_path in file_paths:
         max_attempts = 3
@@ -30,23 +54,113 @@ def cleanup_files(*file_paths):
             try:
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                    logger.info(f"Удален файл: {file_path}")
+                    logger.info("Удален файл", file_path=file_path)
                     break
                 else:
-                    logger.info(f"Файл уже удален: {file_path}")
+                    logger.warn("Файл уже удален", file_path=file_path)
                     break
-            except Exception as e:
-                logger.warning(f"Попытка {attempt + 1} удаления {file_path}: {e}")
+            except Exception as ex:
+                logger.warning(
+                    f"Попытка {attempt + 1} удаления {file_path}: {ex}",
+                    attempt=attempt + 1,
+                    file_path=file_path,
+                    caught_exception=(repr(ex), str(ex)),
+                )
                 if attempt < max_attempts - 1:
                     time.sleep(0.1)
                 else:
-                    logger.error(f"Не удалось удалить {file_path} после {max_attempts} попыток")
+                    logger.error(
+                        f"Не удалось удалить {file_path} после {max_attempts} попыток",
+                        file_path=file_path,
+                        max_attempts=max_attempts,
+                        exc_info=True,
+                    )
 
-def upload_to_website(local_path, filename):
-    """Копирование файла"""
+
+async def upload_to_website(
+    local_io: BytesIO, filename: str
+) -> tuple[str, str] | None:
+    """Копирование файла. Временно на 0x0.st
+
+    Args:
+        local_io (BytesIO): Байты файла для копирования
+
+    Returns:
+        tuple[str, str] | None: Возвращает ссылку на файл и токен для удаления файла
+    """
     try:
-        shutil.copy2(local_path, filename)
-        return True
-    except Exception as e:
-        logger.error(f"Ошибка копирования файла: {e}")
-        return False
+        async with httpx.AsyncClient() as client:
+            url = "https://0x0.st/"
+            response = await client.post(
+                url,
+                files=dict(file=local_io),
+                headers={"User-Agent": "AlekzumWeatherBot/1.0"},
+            )
+            if response.status_code == 200:
+                result = response.text
+                x_token = response.headers["X-Token"]
+            else:
+                logger.error(
+                    "Ошибка от 0x0.st",
+                    response=response,
+                    status_code=response.status_code,
+                    content=response.content,
+                )
+                return None
+
+        logger.debug(
+            "Файл скопирован на сервер", from_io=local_io, output_file=filename
+        )
+        file_tokens[result] = x_token
+
+        return result, x_token
+    except Exception as ex:
+        logger.error(
+            "Ошибка копирования файла",
+            caught_exception=(repr(ex), str(ex)),
+            exc_info=True,
+        )
+        return None
+
+
+async def delete_file(file_url: str):
+    """Удаление файла с 0x0.st
+
+    Args:
+        file_url (str): ссылка на файл вида "https://0x0.st/AbCd.txt"
+    """
+    token = file_tokens.get(file_url)
+    if not token:
+        logger.warn("didn't found cached token", file_url=file_url)
+        return
+    await delete_file_(file_url=file_url, x_token=token)
+
+
+async def delete_file_(file_url: str, x_token: str):
+    """Удаление файла с 0x0.st
+
+    Args:
+        file_url (str): ссылка на файл вида "https://0x0.st/AbCd.txt"
+        x_token (str): X-Token из заголовка после загрузки файла
+    """
+    if not file_url.startswith("https://0x0.st/"):
+        raise ValueError("Требуется файл только из 0x0.st!")
+
+    async with httpx.AsyncClient() as client:
+        file_url = file_url.removeprefix("https://0x0.st/")
+        url = f"https://0x0.st/{file_url}"
+        response = await client.post(
+            url,
+            headers={"User-Agent": "AlekzumWeatherBot/1.0"},
+            data=dict(token=x_token),
+        )
+        if response.status_code == 200:
+            return True
+        else:
+            logger.error(
+                "Ошибка от 0x0.st",
+                response=response,
+                status_code=response.status_code,
+                content=response.content,
+            )
+            return None
