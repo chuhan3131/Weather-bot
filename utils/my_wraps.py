@@ -14,7 +14,6 @@ def try_import(module):
 
 def wrap_loggers():
     wrap_loggers_module("aiogram")
-    wrap_loggers_module("PIL")
     wrap_loggers_module("utils", relative_to=Path())
 
 
