@@ -279,7 +279,11 @@ async def create_weather_card_async(
         )
 
         elapsed_time = time.time() - start_time
-        logger.info("Карточка создана", elapsed_time=elapsed_time)
+        logger.info(
+            "Карточка создана",
+            elapsed_time=elapsed_time,
+            city=weather_data["city"],
+        )
         return success, card
 
     except Exception as ex:

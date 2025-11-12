@@ -135,10 +135,11 @@ logger.debug("Загружен модуль логирования", custom_leve
 MUTEDICT = {
     "utils": logging.DEBUG,
     "httpx": LEVEL_WARNING,
-    "asyncio": logging.ERROR,
-    "httpcore": logging.WARNING,
     "aiogram": LEVEL_INFO,
+    "asyncio": logging.ERROR,
     "html": logging.DEBUG,
+    "httpcore": logging.WARNING,
+    "pil": logging.WARNING,
 }
 
 for name, level in MUTEDICT.items():
