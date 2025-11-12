@@ -3,10 +3,10 @@ import time
 import random
 import string
 import shutil
-import logging
+import structlog
 from io import BytesIO
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def generate_random_ip():
@@ -53,20 +53,26 @@ def cleanup_files(*file_paths: str):
             try:
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                    logger.info(f"Удален файл: {file_path}")
+                    logger.info("Удален файл", file_path=file_path)
                     break
                 else:
-                    logger.info(f"Файл уже удален: {file_path}")
+                    logger.warn("Файл уже удален", file_path=file_path)
                     break
-            except Exception as e:
+            except Exception as ex:
                 logger.warning(
-                    f"Попытка {attempt + 1} удаления {file_path}: {e}"
+                    f"Попытка {attempt + 1} удаления {file_path}: {ex}",
+                    attempt=attempt + 1,
+                    file_path=file_path,
+                    caught_exception=(repr(ex), str(ex)),
                 )
                 if attempt < max_attempts - 1:
                     time.sleep(0.1)
                 else:
                     logger.error(
-                        f"Не удалось удалить {file_path} после {max_attempts} попыток", exc_info=True
+                        f"Не удалось удалить {file_path} после {max_attempts} попыток",
+                        file_path=file_path,
+                        max_attempts=max_attempts,
+                        exc_info=True,
                     )
 
 
@@ -76,6 +82,10 @@ def upload_to_website(local_io: BytesIO, filename: str):
         with open(filename, "wb") as file:
             shutil.copyfileobj(local_io, file)
         return True
-    except Exception as e:
-        logger.error(f"Ошибка копирования файла: {e}", exc_info=True)
+    except Exception as ex:
+        logger.error(
+            "Ошибка копирования файла",
+            caught_exception=(repr(ex), str(ex)),
+            exc_info=True,
+        )
         return False

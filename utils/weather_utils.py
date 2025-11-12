@@ -1,14 +1,15 @@
-import aiohttp
-import logging
 import httpx
+import aiohttp
+import structlog
 from datetime import datetime, timezone, timedelta
 from config import (
+    CACHE_TTL,
     OPENWEATHERMAP_BASE_URL,
     OPENWEATHERMAP_API_KEY,
     REQUEST_TIMEOUT,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.getLogger(__name__)
 
 # Кэш для погодных данных
 weather_cache = {}
@@ -30,9 +31,12 @@ async def get_location_async(ip):
                 if data["status"] == "success":
                     return data["city"], data["countryCode"]
                 return None, None
-    except Exception as e:
+    except Exception as ex:
         logger.error(
-            f"Ошибка получения локации для IP {ip}: {e}", exc_info=True
+            "Ошибка получения локации для IP",
+            ip=ip,
+            caught_exception=(repr(ex), str(ex)),
+            exc_info=True,
         )
         return None, None
 
@@ -76,8 +80,11 @@ def process_weather_data(data):
         "current_time_local": current_time_local,
     }
 
-    logger.info(
-        f"Погода для {data['name']}: {result['temp']}°C, {result['description']}"
+    logger.debug(
+        "Получена погода",
+        city_name=data["name"],
+        temperature=result["temp"],
+        description=result["description"],
     )
     return result
 
@@ -89,8 +96,8 @@ async def get_current_weather_async(city, country_code=None):
     # Проверка кэша
     if cache_key in weather_cache:
         cache_data, timestamp = weather_cache[cache_key]
-        if (datetime.now().timestamp() - timestamp) < 600:
-            logger.info(f"Использован кэш для: {city}")
+        if (datetime.now().timestamp() - timestamp) < CACHE_TTL:
+            logger.debug("Использовано кэшированное значение", city=city)
             return cache_data
 
     try:
@@ -109,7 +116,9 @@ async def get_current_weather_async(city, country_code=None):
                 "lang": "ru",
             }
             response = await client.get(url, params=params)
-            logger.info(f"{response.content=}")
+            logger.debug(
+                "получен ответ от openweathermap", content=response.content
+            )
             data = response.json()
             weather_data = process_weather_data(data)
 
@@ -150,6 +159,11 @@ async def get_current_weather_async(city, country_code=None):
 
         #         return weather_data
 
-    except Exception as e:
-        logger.error(f"Ошибка получения погоды для {city}: {e}", exc_info=True)
+    except Exception as ex:
+        logger.error(
+            "Ошибка получения погоды",
+            city=city,
+            caught_exception=(repr(ex), str(ex)),
+            exc_info=True,
+        )
         return None

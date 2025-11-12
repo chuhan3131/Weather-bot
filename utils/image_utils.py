@@ -1,11 +1,12 @@
 import time
-import logging
+import structlog
 import asyncio
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from typing import Any
 
-logger = logging.getLogger(__name__)
+
+logger = structlog.getLogger(__name__)
 
 # Глобальные переменные для кэша ресурсов
 FONT_LARGE: Any = None
@@ -79,8 +80,10 @@ def load_resources():
             DARK_EMOJI_CACHE[key] = Image.open(path).convert("RGBA")
 
         logger.info("Ресурсы предзагружены")
-    except Exception as e:
-        logger.error(f"Ошибка предзагрузки ресурсов: {e}")
+    except Exception as ex:
+        logger.error(
+            "Ошибка предзагрузки ресурсов", caught_exception=(repr(ex), str(ex))
+        )
         raise
 
 
@@ -221,8 +224,10 @@ def get_weather_emoji(description, current_time_local, size=(550, 550)):
 
         return emoji.resize(size, Image.Resampling.LANCZOS)
 
-    except Exception as e:
-        logger.error(f"Ошибка загрузки эмодзи: {e}")
+    except Exception as ex:
+        logger.error(
+            "Ошибка загрузки эмодзи", caught_exception=(repr(ex), str(ex))
+        )
         return Image.new("RGBA", size, (0, 0, 0, 0))
 
 
@@ -273,11 +278,16 @@ async def create_weather_card_async(
             None, create_weather_card_sync, weather_data
         )
 
-        logger.info(f"Карточка создана за {time.time() - start_time:.2f}с")
+        elapsed_time = time.time() - start_time
+        logger.info("Карточка создана", elapsed_time=elapsed_time)
         return success, card
 
-    except Exception as e:
-        logger.error(f"Ошибка создания карточки: {e}", exc_info=True)
+    except Exception as ex:
+        logger.error(
+            "Ошибка создания карточки",
+            caught_exception=(repr(ex), str(ex)),
+            exc_info=True,
+        )
         return False, None
 
 
@@ -289,8 +299,11 @@ def create_weather_card_sync(
         current_time_local = weather_data["current_time_local"]
         is_night = is_night_time(current_time_local)
 
-        logger.info(
-            f"Создание карточки для {weather_data['city']}, местное время: {current_time_local}, ночной режим: {is_night}"
+        logger.debug(
+            "Создание карточки",
+            city=weather_data["city"],
+            local_time=current_time_local,
+            is_night=is_night,
         )
 
         # Выбираем фон в зависимости от времени суток в городе
@@ -423,8 +436,12 @@ def create_weather_card_sync(
         main_img.save(out, "PNG", optimize=True, quality=85)
         return True, out
 
-    except Exception as e:
-        logger.error(f"Ошибка создания карточки: {e}", exc_info=True)
+    except Exception as ex:
+        logger.error(
+            "Ошибка создания карточки",
+            caught_exception=(repr(ex), str(ex)),
+            exc_info=True,
+        )
         return False, None
 
 
