@@ -74,7 +74,7 @@ async def _inline_weather_query(query: types.InlineQuery, bot: Bot):
     # Обработка команды random
     start_time = time.time()
     location = query.query.strip().lower()
-    is_ip = location.count(".") == 4
+    is_ip = location.count(".") == 3
     city = country_code = None
 
     if location == "random":
