@@ -9,8 +9,7 @@ from utils.image_utils import create_weather_card_async
 from utils.file_utils import (
     generate_random_filename,
     cleanup_files,
-    upload_to_website,
-    generate_random_ip,
+        generate_random_ip,
 )
 from io import BytesIO
 from config import IMGBB_API_KEY
@@ -111,7 +110,6 @@ async def _inline_weather_query(query: types.InlineQuery, bot: Bot):
         location = random_ip
     elif is_ip:
         city, country_code = await get_location_async(location)
-
     if not city:
         results = generate_article(
             id="ip_error",
@@ -126,9 +124,28 @@ async def _inline_weather_query(query: types.InlineQuery, bot: Bot):
         elapsed_time = time.time() - start_time
         logger.warn("Ошибка IP отправлена", elapsed_time=elapsed_time)
         return
+else:
+        city = location
 
     weather_data = await get_current_weather_async(city, country_code)
     if not weather_data:
+results = generate_article(
+            id="city_error",
+            title="Ошибка определения местоположения",
+            description=f"Город {location} не найден",
+            message_text=(
+                "❌ Город <code>{}</code> не найден\n\n"
+                "Проверьте город и повторите попытку\n\n<b>@{}</b>"
+            ).format(location, bot_username),
+        )
+        await query.answer(results, cache_time=1)  # type: ignore[arg-type]
+        elapsed_time = time.time() - start_time
+        logger.warn(
+            "Ошибка города отправлена",
+            elapsed_time=elapsed_time,
+            city=city,
+            location=location,
+        )
         return
 
     image_url, website_filename = await generate_image(
@@ -246,8 +263,7 @@ async def generate_image(weather_data: dict):
     timestamp = int(time.time())
     local_filename = generate_random_filename(prefix=f"weather_{timestamp}")
     website_filename = local_filename
-    # local_filepath = f"templates/{local_filename}"
-
+    
     # Асинхронное создание карточки
     card_created, card_io = await create_weather_card_async(weather_data)
 
@@ -257,8 +273,7 @@ async def generate_image(weather_data: dict):
         raise RuntimeError("Didn't created card's BytesIO!")
 
     imgbb_task = asyncio.create_task(upload_to_imgbb(card_io))
-    upload_to_website(card_io, website_filename)
-
+    
     image_url = await imgbb_task
 
     if not image_url:
