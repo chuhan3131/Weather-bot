@@ -134,30 +134,6 @@ async def get_current_weather_async(city, country_code=None):
                     weather_cache.pop(oldest_key)
 
             return weather_data
-        # timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
-        # async with aiohttp.ClientSession(timeout=timeout) as session:
-        #     params = {
-        #         "q": query,
-        #         "units": "metric",
-        #         "APPID": OPENWEATHERMAP_API_KEY,
-        #         "lang": "ru",
-        #     }
-        #     async with session.get(url, params=params) as response:
-        #         data = await response.json()
-        #         weather_data = process_weather_data(data)
-
-        #         # Сохранение в кэш
-        #         if weather_data:
-        #             weather_cache[cache_key] = (
-        #                 weather_data,
-        #                 datetime.now().timestamp(),
-        #             )
-        #             # Очистка старого кэша
-        #             if len(weather_cache) > 100:
-        #                 oldest_key = next(iter(weather_cache))
-        #                 weather_cache.pop(oldest_key)
-
-        #         return weather_data
 
     except Exception as ex:
         logger.error(

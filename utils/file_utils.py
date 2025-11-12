@@ -7,6 +7,7 @@ import structlog
 from io import BytesIO
 
 logger = structlog.get_logger(__name__)
+file_tokens: dict[str, str] = dict()
 
 
 def generate_random_ip():
@@ -45,7 +46,7 @@ def generate_random_filename(prefix="weather", extension="png"):
     return f"{prefix}_{random_string}.{extension}"
 
 
-def cleanup_files(*file_paths: str):
+async def cleanup_files(*file_paths: str):
     """Удаление файлов после использования"""
     for file_path in file_paths:
         max_attempts = 3
@@ -83,14 +84,13 @@ async def upload_to_website(
 
     Args:
         local_io (BytesIO): Байты файла для копирования
-        filename (str): Название будущего файла
 
     Returns:
         tuple[str, str] | None: Возвращает ссылку на файл и токен для удаления файла
     """
     try:
         async with httpx.AsyncClient() as client:
-            url = f"https://0x0.st/{filename}"
+            url = "https://0x0.st/"
             response = await client.post(
                 url,
                 files=dict(file=local_io),
@@ -108,11 +108,11 @@ async def upload_to_website(
                 )
                 return None
 
-        # with open(filename, "wb") as file:
-        #     shutil.copyfileobj(local_io, file)
         logger.debug(
             "Файл скопирован на сервер", from_io=local_io, output_file=filename
         )
+        file_tokens[result] = x_token
+
         return result, x_token
     except Exception as ex:
         logger.error(
@@ -123,7 +123,20 @@ async def upload_to_website(
         return None
 
 
-async def delete_file(file_url: str, x_token: str):
+async def delete_file(file_url: str):
+    """Удаление файла с 0x0.st
+
+    Args:
+        file_url (str): ссылка на файл вида "https://0x0.st/AbCd.txt"
+    """
+    token = file_tokens.get(file_url)
+    if not token:
+        logger.warn("didn't found cached token", file_url=file_url)
+        return
+    await delete_file_(file_url=file_url, x_token=token)
+
+
+async def delete_file_(file_url: str, x_token: str):
     """Удаление файла с 0x0.st
 
     Args:

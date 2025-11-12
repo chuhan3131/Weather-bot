@@ -92,7 +92,6 @@ structlog.configure(
 stream_formatter = structlog.stdlib.ProcessorFormatter(
     processors=[
         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-        # structlog.processors.UnicodeDecoder(),
         structlog.dev.ConsoleRenderer(),
     ],
 )
@@ -100,7 +99,6 @@ stream_formatter = structlog.stdlib.ProcessorFormatter(
 file_formatter = structlog.stdlib.ProcessorFormatter(
     processors=[
         structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-        # structlog.processors.UnicodeDecoder(),
         structlog.processors.JSONRenderer(ensure_ascii=False),
     ],
 )
