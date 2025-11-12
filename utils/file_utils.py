@@ -1,8 +1,8 @@
 import os
 import time
+import httpx
 import random
 import string
-import shutil
 import structlog
 from io import BytesIO
 
@@ -76,16 +76,78 @@ def cleanup_files(*file_paths: str):
                     )
 
 
-def upload_to_website(local_io: BytesIO, filename: str):
-    """Копирование файла"""
+async def upload_to_website(
+    local_io: BytesIO, filename: str
+) -> tuple[str, str] | None:
+    """Копирование файла. Временно на 0x0.st
+
+    Args:
+        local_io (BytesIO): Байты файла для копирования
+        filename (str): Название будущего файла
+
+    Returns:
+        tuple[str, str] | None: Возвращает ссылку на файл и токен для удаления файла
+    """
     try:
-        with open(filename, "wb") as file:
-            shutil.copyfileobj(local_io, file)
-        return True
+        async with httpx.AsyncClient() as client:
+            url = f"https://0x0.st/{filename}"
+            response = await client.post(
+                url,
+                files=dict(file=local_io),
+                headers={"User-Agent": "AlekzumWeatherBot/1.0"},
+            )
+            if response.status_code == 200:
+                result = response.text
+                x_token = response.headers["X-Token"]
+            else:
+                logger.error(
+                    "Ошибка от 0x0.st",
+                    response=response,
+                    status_code=response.status_code,
+                    content=response.content,
+                )
+                return None
+
+        # with open(filename, "wb") as file:
+        #     shutil.copyfileobj(local_io, file)
+        logger.debug(
+            "Файл скопирован на сервер", from_io=local_io, output_file=filename
+        )
+        return result, x_token
     except Exception as ex:
         logger.error(
             "Ошибка копирования файла",
             caught_exception=(repr(ex), str(ex)),
             exc_info=True,
         )
-        return False
+        return None
+
+
+async def delete_file(file_url: str, x_token: str):
+    """Удаление файла с 0x0.st
+
+    Args:
+        file_url (str): ссылка на файл вида "https://0x0.st/AbCd.txt"
+        x_token (str): X-Token из заголовка после загрузки файла
+    """
+    if not file_url.startswith("https://0x0.st/"):
+        raise ValueError("Требуется файл только из 0x0.st!")
+
+    async with httpx.AsyncClient() as client:
+        file_url = file_url.removeprefix("https://0x0.st/")
+        url = f"https://0x0.st/{file_url}"
+        response = await client.post(
+            url,
+            headers={"User-Agent": "AlekzumWeatherBot/1.0"},
+            data=dict(token=x_token),
+        )
+        if response.status_code == 200:
+            return True
+        else:
+            logger.error(
+                "Ошибка от 0x0.st",
+                response=response,
+                status_code=response.status_code,
+                content=response.content,
+            )
+            return None
