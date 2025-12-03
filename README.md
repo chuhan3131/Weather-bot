@@ -1,3 +1,4 @@
+
 # 🌤️ Weather Bot
 
 A Telegram bot that generates beautiful weather cards using inline mode.
@@ -35,6 +36,44 @@ Run the bot:
 python bot.py
 ```
 
+## 📦 Docker Deployment
+
+### Using Docker
+
+```bash
+# Build the image
+docker build -t weather-bot .
+
+# Run the container
+docker run -d --name weather-bot --env-file .env weather-bot
+```
+
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `BOT_TOKEN` | ✅ | Telegram Bot Token from @BotFather |
+| `OPENWEATHERMAP_API_KEY` | ✅ | API Key from OpenWeatherMap |
+| `IMGBB_API_KEY` | ❌ | API Key for ImgBB image hosting |
+| `REQUEST_TIMEOUT` | ❌ | Request timeout in seconds (default: 4) |
+| `CACHE_TTL` | ❌ | Cache TTL in seconds (default: 600) |
+
+### Container Management
+
+```bash
+# View logs
+docker logs -f weather-bot
+
+# Stop container
+docker stop weather-bot
+
+# Restart container
+docker restart weather-bot
+```
+
+See [Dockerfile](./Dockerfile) for build configuration.
+
 ## 💡 Usage
 
 In any Telegram chat:
@@ -59,3 +98,12 @@ In any Telegram chat:
 * Pillow (image generation)
 * OpenWeatherMap API
 * Asynchronous programming
+* Docker & Docker Compose (for containerization)
+
+---
+
+## ⭐ If you like this project, give it a star!
+- **Telegram DM:** [t.me/glattstyle](https://t.me/glattstyle)
+- **Telegram Blog:** [t.me/chuhandev](https://t.me/chuhandev)  
+- **Telegram Chat:** [t.me/chuhanchat](https://t.me/chuhanchat)
+
