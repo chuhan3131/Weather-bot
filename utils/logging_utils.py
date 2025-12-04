@@ -1,4 +1,3 @@
-# made by alekzum :3
 from typing import Iterable, MutableMapping
 import structlog
 import logging.handlers
@@ -128,7 +127,7 @@ root_logger = structlog.wrap_logger(root_logger)
 
 logger = structlog.get_logger(__name__)
 
-logger.debug("Загружен модуль логирования", custom_level=LEVEL)
+logger.debug("Logging module loaded", custom_level=LEVEL)
 
 MUTEDICT = {
     "utils": logging.DEBUG,

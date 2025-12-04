@@ -11,7 +11,7 @@ file_tokens: dict[str, str] = dict()
 
 
 def generate_random_ip():
-    """Генерация случайного публичного IP адреса"""
+    """Generate a random public IP address"""
 
     first_octet = random.choice(
         [
@@ -39,7 +39,7 @@ def generate_random_ip():
 
 
 def generate_random_filename(prefix="weather", extension="png"):
-    """Генерация случайного имени карточки погоды"""
+    """Generate a random weather card name"""
     random_string = "".join(
         random.choices(string.ascii_lowercase + string.digits, k=16)
     )
@@ -47,21 +47,21 @@ def generate_random_filename(prefix="weather", extension="png"):
 
 
 async def cleanup_files(*file_paths: str):
-    """Удаление файлов после использования"""
+    """Deleting files after use"""
     for file_path in file_paths:
         max_attempts = 3
         for attempt in range(max_attempts):
             try:
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                    logger.info("Удален файл", file_path=file_path)
+                    logger.info("File deleted", file_path=file_path)
                     break
                 else:
-                    logger.warn("Файл уже удален", file_path=file_path)
+                    logger.warn("File already deleted", file_path=file_path)
                     break
             except Exception as ex:
                 logger.warning(
-                    f"Попытка {attempt + 1} удаления {file_path}: {ex}",
+                    f"Attempt {attempt + 1} to delete {file_path}: {ex}",
                     attempt=attempt + 1,
                     file_path=file_path,
                     caught_exception=(repr(ex), str(ex)),
@@ -70,7 +70,7 @@ async def cleanup_files(*file_paths: str):
                     time.sleep(0.1)
                 else:
                     logger.error(
-                        f"Не удалось удалить {file_path} после {max_attempts} попыток",
+                        f"Failed to delete {file_path} after {max_attempts} attempts",
                         file_path=file_path,
                         max_attempts=max_attempts,
                         exc_info=True,
@@ -80,13 +80,13 @@ async def cleanup_files(*file_paths: str):
 async def upload_to_website(
     local_io: BytesIO, filename: str
 ) -> tuple[str, str] | None:
-    """Копирование файла. Временно на 0x0.st
+    """Copying file. Temporarily to 0x0.st
 
     Args:
-        local_io (BytesIO): Байты файла для копирования
+        local_io (BytesIO): Bytes of the file to copy
 
     Returns:
-        tuple[str, str] | None: Возвращает ссылку на файл и токен для удаления файла
+        tuple[str, str] | None: Returns a link to the file and a token to delete the file
     """
     try:
         async with httpx.AsyncClient() as client:
@@ -101,7 +101,7 @@ async def upload_to_website(
                 x_token = response.headers["X-Token"]
             else:
                 logger.error(
-                    "Ошибка от 0x0.st",
+                    "Error from 0x0.st",
                     response=response,
                     status_code=response.status_code,
                     content=response.content,
@@ -109,14 +109,14 @@ async def upload_to_website(
                 return None
 
         logger.debug(
-            "Файл скопирован на сервер", from_io=local_io, output_file=filename
+            "File copied to server", from_io=local_io, output_file=filename
         )
         file_tokens[result] = x_token
 
         return result, x_token
     except Exception as ex:
         logger.error(
-            "Ошибка копирования файла",
+            "File copy error",
             caught_exception=(repr(ex), str(ex)),
             exc_info=True,
         )
@@ -124,27 +124,27 @@ async def upload_to_website(
 
 
 async def delete_file(file_url: str):
-    """Удаление файла с 0x0.st
+    """Delete file from 0x0.st
 
     Args:
-        file_url (str): ссылка на файл вида "https://0x0.st/AbCd.txt"
+        file_url (str): link to file of the form "https://0x0.st/AbCd.txt"
     """
     token = file_tokens.get(file_url)
     if not token:
-        logger.warn("didn't found cached token", file_url=file_url)
+        logger.warn("didn't find cached token", file_url=file_url)
         return
     await delete_file_(file_url=file_url, x_token=token)
 
 
 async def delete_file_(file_url: str, x_token: str):
-    """Удаление файла с 0x0.st
+    """Delete file from 0x0.st
 
     Args:
-        file_url (str): ссылка на файл вида "https://0x0.st/AbCd.txt"
-        x_token (str): X-Token из заголовка после загрузки файла
+        file_url (str): link to the file of the form "https://0x0.st/AbCd.txt"
+        x_token (str): X-Token from the header after downloading the file
     """
     if not file_url.startswith("https://0x0.st/"):
-        raise ValueError("Требуется файл только из 0x0.st!")
+        raise ValueError("Only files from 0x0.st are allowed!")
 
     async with httpx.AsyncClient() as client:
         file_url = file_url.removeprefix("https://0x0.st/")
@@ -158,7 +158,7 @@ async def delete_file_(file_url: str, x_token: str):
             return True
         else:
             logger.error(
-                "Ошибка от 0x0.st",
+                "Error from 0x0.st",
                 response=response,
                 status_code=response.status_code,
                 content=response.content,

@@ -17,5 +17,5 @@ required_vars = ["BOT_TOKEN", "OPENWEATHERMAP_API_KEY", "IMGBB_API_KEY"]
 for var in required_vars:
     if not globals()[var]:
         raise ValueError(
-            f"Отсутствует обязательная переменная окружения: {var}"
+            f"Missing required environment variable: {var}"
         )

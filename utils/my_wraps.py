@@ -23,7 +23,7 @@ def wrap_loggers_module(
     logger.debug("trying to import module", module_name=module_name)
     module = try_import(module_name)
     if module is None:
-        logger.warning("Didn't found module", module_name=module_name)
+        logger.warning("Didn't find module", module_name=module_name)
         return
 
     path = Path(module.__file__ or "").parent
@@ -38,7 +38,7 @@ def wrap_loggers_module(
                 x.relative_to(relative_to.absolute())
                 .as_posix()
                 .removesuffix(".py")
-                .replace("/", ".")
+                .replace("/", ". ")
             )
         )
         is not None

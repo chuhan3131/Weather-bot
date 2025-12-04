@@ -9,20 +9,21 @@ from config import (
     REQUEST_TIMEOUT,
 )
 
+
 logger = structlog.getLogger(__name__)
 
-# Кэш для погодных данных
+# Cache for weather data
 weather_cache = {}
 
 
 def wind_direction(deg):
-    """Определение направления ветра"""
-    directions = ["С", "СВ", "В", "ЮВ", "Ю", "ЮЗ", "З", "СЗ"]
+    """Determining wind direction"""
+    directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     return directions[round(deg / 45) % 8]
 
 
 async def get_location_async(ip):
-    """Асинхронное получение локации по IP"""
+    """Asynchronous location retrieval by IP"""
     try:
         timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -33,7 +34,7 @@ async def get_location_async(ip):
                 return None, None
     except Exception as ex:
         logger.error(
-            "Ошибка получения локации для IP",
+            "Error getting location for IP",
             ip=ip,
             caught_exception=(repr(ex), str(ex)),
             exc_info=True,
@@ -41,8 +42,41 @@ async def get_location_async(ip):
         return None, None
 
 
+def translate_description(description):
+    """Translate weather description to English if needed"""
+    # This is a simple translation dictionary. You might want to expand it
+    # or use a proper translation service
+    translations = {
+        "ясно": "clear",
+        "малооблачно": "few clouds",
+        "облачно": "cloudy",
+        "пасмурно": "overcast",
+        "небольшой дождь": "light rain",
+        "дождь": "rain",
+        "ливень": "shower",
+        "гроза": "thunderstorm",
+        "снег": "snow",
+        "туман": "fog",
+        "дымка": "haze",
+    }
+    
+    # Check if description is in Russian (Cyrillic characters)
+    has_cyrillic = any('\u0400' <= char <= '\u04FF' for char in description)
+    
+    if has_cyrillic:
+        # Try to translate
+        lower_desc = description.lower()
+        for rus, eng in translations.items():
+            if rus in lower_desc:
+                return eng.capitalize()
+        # If no translation found, return as is or use a fallback
+        return description
+    
+    return description
+
+
 def process_weather_data(data):
-    """Обработка данных погоды"""
+    """Processing weather data"""
     if data.get("cod") != 200:
         return None
 
@@ -64,16 +98,19 @@ def process_weather_data(data):
     current_time_utc = datetime.now(timezone.utc)
     current_time_local = current_time_utc + timedelta(seconds=timezone_offset)
 
+    # Get weather description and translate if needed
+    description = weather["description"]
+    
     result = {
-        "city": data["name"],
+        "city": data["name"],  # OpenWeatherMap returns city names in English when lang=en
         "country": sys["country"],
         "temp": main["temp"],
         "feels_like": main["feels_like"],
         "humidity": main["humidity"],
         "pressure": round(main["pressure"] * 0.750062),
         "wind_speed": wind["speed"],
-        "wind_dir": wind_direction(wind["deg"]) if "deg" in wind else "N/A",
-        "description": weather["description"],
+        "wind_dir": wind_direction(wind["deg"]) if 'deg' in wind else "N/A",
+        "description": description,
         "sunrise": sunrise_str,
         "sunset": sunset_str,
         "timezone_offset": timezone_offset,
@@ -81,7 +118,7 @@ def process_weather_data(data):
     }
 
     logger.debug(
-        "Получена погода",
+        "Weather received",
         city_name=data["name"],
         temperature=result["temp"],
         description=result["description"],
@@ -90,14 +127,14 @@ def process_weather_data(data):
 
 
 async def get_current_weather_async(city, country_code=None):
-    """Асинхронное получение погоды с кэшированием"""
+    """Asynchronous weather retrieval with caching"""
     cache_key = f"{city}_{country_code}" if country_code else city
 
-    # Проверка кэша
+    # Check cache
     if cache_key in weather_cache:
         cache_data, timestamp = weather_cache[cache_key]
         if (datetime.now().timestamp() - timestamp) < CACHE_TTL:
-            logger.debug("Использовано кэшированное значение", city=city)
+            logger.debug("Cached value used", city=city)
             return cache_data
 
     try:
@@ -113,22 +150,22 @@ async def get_current_weather_async(city, country_code=None):
                 "q": query,
                 "units": "metric",
                 "APPID": OPENWEATHERMAP_API_KEY,
-                "lang": "ru",
+                "lang": "en",  # Changed from "ru" to "en" for English descriptions
             }
             response = await client.get(url, params=params)
             logger.debug(
-                "получен ответ от openweathermap", content=response.content
+                "received response from openweathermap", content=response.content
             )
             data = response.json()
             weather_data = process_weather_data(data)
 
-            # Сохранение в кэш
+            # Saving to cache
             if weather_data:
                 weather_cache[cache_key] = (
                     weather_data,
                     datetime.now().timestamp(),
                 )
-                # Очистка старого кэша
+                # Clearing old cache
                 if len(weather_cache) > 100:
                     oldest_key = next(iter(weather_cache))
                     weather_cache.pop(oldest_key)
@@ -137,7 +174,7 @@ async def get_current_weather_async(city, country_code=None):
 
     except Exception as ex:
         logger.error(
-            "Ошибка получения погоды",
+            "Error getting weather",
             city=city,
             caught_exception=(repr(ex), str(ex)),
             exc_info=True,

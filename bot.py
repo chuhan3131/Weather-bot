@@ -16,15 +16,15 @@ async def main():
     wrap_loggers()
     load_resources()
 
-    # Инициализация бота
+    # Bot initialization
     bot = Bot(
         token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
     dp = Dispatcher()
-    logger.debug("Привязываем роутеры к диспетчеру.", routers=routers)
+    logger.debug("Binding routers to the dispatcher.", routers=routers)
     dp.include_routers(*routers)
 
-    logger.info("Бот запущен!")
+    logger.info("Bot started!")
     await dp.start_polling(bot)
 
 

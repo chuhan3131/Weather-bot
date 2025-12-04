@@ -16,14 +16,14 @@ async def process_start_command(message: Message, bot: Bot):
         sender = message.sender_chat
     else:
         logger.error(
-            "Не удалось получить отправителя",
+            "Failed to get sender",
             chat_id=message.chat.id,
             message_id=message.chat.id,
         )
         return
     username_bot = await bot.get_me()
     await message.answer(
-        f"<b>Привет, {sender.full_name}!</b>\n\n"
-        f"Для просмотра погоды пропиши <code>@{username_bot.username} место/IP</code>\n\n"
-        f"Используй <code>@{username_bot.username} random</code> для случайной локации"
+        f"<b>Hello, {sender.full_name}!</b>\n\n"
+        f"To check the weather, type <code>@{username_bot.username} location/IP</code>\n\n"
+        f"Use <code>@{username_bot.username} random</code> for a random location"
     )
