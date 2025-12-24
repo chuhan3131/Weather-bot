@@ -1,15 +1,14 @@
 from aiogram import Bot, Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from structlog import get_logger
 import asyncio
 from datetime import datetime
 from aiogram.filters import Command
 from aiogram import types, Router
 
+from utils.logger import logger
 
 router = Router(name=__name__)
-logger = get_logger(__name__)
 
 
 @router.message(Command("start"))
