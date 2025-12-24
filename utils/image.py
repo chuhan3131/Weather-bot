@@ -1,5 +1,4 @@
 import time
-import structlog
 import asyncio
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
