@@ -266,7 +266,6 @@ HELP_MESSAGE_EN = (
     "<code>@{bot_username} IP</code>\n"
     "<code>@{bot_username} random</code>\n\n"
     "Example: <code>@{bot_username} Moscow</code>\n"
-    "Example: <code>@{bot_username} Москва</code>"
 )
 
 HELP_MESSAGE_RU = (
@@ -275,7 +274,6 @@ HELP_MESSAGE_RU = (
     "<code>@{bot_username} город</code>\n"
     "<code>@{bot_username} IP</code>\n"
     "<code>@{bot_username} random</code>\n\n"
-    "Пример: <code>@{bot_username} Moscow</code>\n"
     "Пример: <code>@{bot_username} Москва</code>"
 )
 
